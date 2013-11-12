@@ -1,9 +1,15 @@
 package main
 
 import (
-	"../../go-svmlight-algo"
+	. "../../go-svmlight-algo"
+	"fmt"
+	. "github.com/apourchet/go-svmlight"
 )
 
 func main() {
-	svmalgo.TestFunction()
+	fmt.Println("Testing has begun.")
+	f := ParseSVMFile("data/boxes.train")
+	ns := Knn(f.Instances[0], f, 4)
+	pred := KnnPredict(ns)
+	fmt.Println(pred)
 }

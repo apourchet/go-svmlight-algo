@@ -2,27 +2,27 @@ package svmalgo
 
 import (
 	. "github.com/apourchet/go-svmlight"
+	"sort"
 )
-
-type SimMatrix struct {
-	Matrix   [][]float64
-	FileName string
-}
-
-type Neighbor struct {
-	From, To  SVMInstance
-	Sim       float64
-	NormedSim float64
-}
 
 type Centroid SVMInstance
 
-var IsSimMatrixSet = false
+func DotProduct(instance1, instance2 SVMInstance) float64 {
+	sum := 0.
+	for featureId, value := range instance1.Features {
+		sum += float64(value) * float64(instance2.Features[featureId])
+	}
+	return sum
+}
 
-func CalculateSims(instance *SVMInstance, file *SVMFile) *SimMatrix {
+func CalculateSims(instance SVMInstance, file *SVMFile) *SimMatrix {
 	arr := make([][]float64, 1)
-	// TODO implement this
-
+	arr[0] = make([]float64, len(file.Instances))
+	for index, otherInstance := range file.Instances {
+		instancePtr := &(otherInstance)
+		instancePtr.Norm()
+		arr[0][index] = DotProduct(instance, *instancePtr)
+	}
 	ret := SimMatrix{arr, file.FileName}
 	return &ret
 }
@@ -31,17 +31,14 @@ func CalculateSims(instance *SVMInstance, file *SVMFile) *SimMatrix {
 // starts making a 1,000,000 x 1,000,000 matrix of float64's
 func ConstructSimMatrix(file *SVMFile) *SimMatrix {
 	arr := make([][]float64, len(file.Instances))
-	// TODO implement this
-
+	for _, instance := range file.Instances {
+		arr = append(arr, CalculateSims(instance, file).Matrix[0])
+	}
 	ret := SimMatrix{arr, file.FileName}
 	return &ret
 }
 
-func SetSimMatrix(mat *SimMatrix) {
-
-}
-
-func ExportSimMatrix(fileName string) {
+func ExportSimMatrix(mat *SimMatrix, fileName string) {
 
 }
 
@@ -52,11 +49,50 @@ func ImportSimMatrix(fileName string) *SimMatrix {
 	return &ret
 }
 
-func Knn(instance *SVMInstance, file *SVMFile) []SVMInstance {
-	return []SVMInstance{}
+func Knn(instance SVMInstance, file *SVMFile, k int) []Neighbor {
+	mat := CalculateSims(instance, file)
+	return KnnCached(mat, instance, file, k)
+}
+
+func KnnCached(mat *SimMatrix, instance SVMInstance, file *SVMFile, k int) []Neighbor {
+	neighbors := NeighborList{}
+	for i, sim := range mat.Matrix[0] {
+		newNeighbor := Neighbor{instance, file.Instances[i], sim}
+		neighbors.Neighbors = append(neighbors.Neighbors, newNeighbor)
+	}
+	sort.Sort(neighbors)
+	return neighbors.Neighbors[:k]
+}
+
+func KnnPredict(neighbors []Neighbor) int {
+	labelCounts := make(map[int]int)
+	maxLabelCount := 0
+	maxLabel := -1
+	for _, n := range neighbors {
+		if _, pres := labelCounts[n.To.Label]; pres {
+			labelCounts[n.To.Label]++
+		} else {
+			labelCounts[n.To.Label] = 1
+		}
+	}
+	for label, count := range labelCounts {
+		if count > maxLabelCount {
+			maxLabel = label
+			maxLabelCount = count
+		}
+	}
+	return maxLabel
 }
 
 func BuildCentroids(file *SVMFile) []Centroid {
 	arr := []Centroid{}
+	labelCounts := make(map[int]int)
+	for _, i := range file.Instances {
+		if _, pres := labelCounts[i.Label]; pres {
+			labelCounts[i.Label]++
+		} else {
+			labelCounts[i.Label] = 1
+		}
+	}
 	return arr
 }

@@ -4,10 +4,34 @@ import (
 	. "github.com/apourchet/go-svmlight"
 )
 
-type DTAttribute int
+type SimMatrix struct {
+	Matrix   [][]float64
+	FileName string
+}
 
-type DTInstance SVMInstance
+type Neighbor struct {
+	From, To SVMInstance
+	Sim      float64
+}
 
-type CompFunction func(instance DTInstance, attribute DTAttribute) bool
+type NeighborList struct {
+	Neighbors []Neighbor
+}
 
-type InfoGainFunc func(instances []DTInstance, attributes []DTAttribute) DTAttribute
+func (l NeighborList) Len() int {
+	return len(l.Neighbors)
+}
+
+func (l NeighborList) Less(i, j int) bool {
+	return l.Neighbors[i].Sim < l.Neighbors[j].Sim
+}
+
+func (l NeighborList) Swap(i, j int) {
+	tmp := l.Neighbors[i]
+	l.Neighbors[i] = l.Neighbors[j]
+	l.Neighbors[j] = tmp
+}
+
+type CompFunction func(instance SVMInstance, attribute int) bool
+
+type InfoGainFunc func(instances []SVMInstance, attributes []int) int
