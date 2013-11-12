@@ -1,6 +1,8 @@
 package svmalgo
 
 import (
+	"bytes"
+	"fmt"
 	. "github.com/apourchet/go-svmlight"
 	"sort"
 )
@@ -39,7 +41,14 @@ func ConstructSimMatrix(file *SVMFile) *SimMatrix {
 }
 
 func ExportSimMatrix(mat *SimMatrix, fileName string) {
-
+	output := bytes.NewBufferString("")
+	for _, arr := range mat.Matrix {
+		for _, sim := range arr {
+			output.WriteString(fmt.Sprintf("%f ", sim))
+		}
+		output.WriteString("\n")
+	}
+	WriteFile(output, fileName)
 }
 
 func ImportSimMatrix(fileName string) *SimMatrix {
